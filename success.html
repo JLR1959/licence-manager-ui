@@ -1,128 +1,34 @@
+async function activer(){
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Paiement réussi</title>
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session_id");
 
-<style>
-body{
-  background:#0b1a2a;
-  color:white;
-  font-family:Arial;
-  text-align:center;
-  padding:50px;
-}
-
-h1{
-  color:#00e676;
-}
-
-.logo{
-  width:150px;
-  margin-bottom:20px;
-}
-
-.error{
-  color:#ff5252;
-  margin-top:20px;
-}
-
-.key{
-  font-size:22px;
-  margin-top:20px;
-  color:#ffd740;
-  word-break:break-all;
-}
-</style>
-
-</head>
-<body>
-
-<img src="logo_jlr.png" class="logo">
-
-<h1>Paiement réussi ✅</h1>
-
-<div id="status">Chargement...</div>
-<div id="key" class="key"></div>
-<div id="error" class="error"></div>
-
-<script>
-
-/* ======================================================
-CONFIG API
-====================================================== */
-
-const API = "https://licence-server-jlr-0jex.onrender.com";
-
-/* ======================================================
-GET SESSION ID
-====================================================== */
-
-const params = new URLSearchParams(window.location.search);
-const session_id = params.get("session_id");
-
-const statusDiv = document.getElementById("status");
-const keyDiv = document.getElementById("key");
-const errorDiv = document.getElementById("error");
-
-/* ======================================================
-FLOW
-====================================================== */
-
-async function init(){
-
-  if(!session_id){
-    statusDiv.innerText = "";
-    errorDiv.innerText = "Session Stripe manquante";
+  if(!sessionId){
+    document.getElementById("status").innerText =
+      "❌ session manquante";
     return;
   }
 
   try{
 
-    /* STEP 1 — GET EMAIL FROM STRIPE */
+    const res = await fetch(API + "/activate/" + sessionId);
+    const data = await res.json();
 
-    const res1 = await fetch(`${API}/session/${session_id}`);
+    const cle = data.licence;
 
-    if(!res1.ok){
-      throw new Error("Session invalide");
-    }
+    if(!cle) throw new Error("activation échouée");
 
-    const data1 = await res1.json();
+    localStorage.setItem("licence_key", cle);
 
-    if(!data1.email){
-      throw new Error("Email introuvable");
-    }
+    document.getElementById("status").innerText =
+      "Licence activée ✔";
 
-    /* STEP 2 — GET LICENCE */
-
-    const res2 = await fetch(`${API}/licence/${data1.email}`);
-
-    if(!res2.ok){
-      throw new Error("Licence introuvable");
-    }
-
-    const data2 = await res2.json();
-
-    statusDiv.innerText = "Licence activée ✅";
-    keyDiv.innerText = data2.cle;
+    afficherCle(cle);
 
   }catch(e){
 
-    statusDiv.innerText = "";
-    errorDiv.innerText = "Erreur : " + e.message;
+    document.getElementById("status").innerText =
+      "❌ erreur";
 
   }
-
 }
-
-/* ======================================================
-START
-====================================================== */
-
-init();
-
-</script>
-
-</body>
-</html>
