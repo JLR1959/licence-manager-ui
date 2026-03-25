@@ -1,34 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Paiement réussi</title>
+
+<style>
+body{
+  background:#0b1220;
+  color:white;
+  text-align:center;
+  padding-top:60px;
+  font-family:Arial;
+}
+
+.logo{
+  width:140px;
+  border-radius:50%;
+  margin-bottom:20px;
+}
+
+h1{
+  color:#22c55e;
+}
+
+#status{
+  margin-top:20px;
+  font-size:18px;
+}
+
+/* LICENCE */
+
+.licence-box{
+  margin-top:30px;
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.bloc{
+  background:#111827;
+  padding:12px 16px;
+  border-radius:8px;
+  font-weight:bold;
+  letter-spacing:2px;
+}
+
+.copy-btn{
+  margin-top:20px;
+  padding:10px 20px;
+  border:none;
+  border-radius:8px;
+  background:#2563eb;
+  color:white;
+  cursor:pointer;
+}
+
+.copy-btn:hover{
+  background:#1d4ed8;
+}
+
+.access-btn{
+  margin-top:20px;
+  padding:12px 25px;
+  border:none;
+  border-radius:8px;
+  background:#22c55e;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.access-btn:hover{
+  background:#16a34a;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- ======================================================
+MODULE 01 — LOGO
+====================================================== -->
+<img src="logo_jlr.png" class="logo">
+
+<!-- ======================================================
+MODULE 02 — TITRE
+====================================================== -->
+<h1>Paiement réussi ✅</h1>
+
+<p id="status">Activation en cours...</p>
+
+<!-- ======================================================
+MODULE 03 — LICENCE UI
+====================================================== -->
+<div id="licenceBox" class="licence-box"></div>
+
+<button id="copyBtn" class="copy-btn" style="display:none;">
+Copier la clé
+</button>
+
+<br/>
+
+<button id="accessBtn" class="access-btn" style="display:none;">
+Accéder au logiciel
+</button>
+
+<script>
+
+/* ======================================================
+MODULE 04 — CONFIG
+====================================================== */
+
+const API = "https://licence-server-jlr-0jex.onrender.com";
+
+/* ======================================================
+MODULE 05 — AFFICHAGE CLE
+====================================================== */
+
+function afficherCle(cle){
+
+  const box = document.getElementById("licenceBox");
+  box.innerHTML = "";
+
+  const blocs = cle.split("-");
+
+  blocs.forEach(b=>{
+    const div = document.createElement("div");
+    div.className = "bloc";
+    div.innerText = b;
+    box.appendChild(div);
+  });
+
+  const btn = document.getElementById("copyBtn");
+  btn.style.display = "inline-block";
+
+  btn.onclick = ()=>{
+    navigator.clipboard.writeText(cle);
+    btn.innerText = "Copié ✔";
+  };
+}
+
+/* ======================================================
+MODULE 06 — ACTIVATION
+====================================================== */
+
 async function activer(){
 
   const params = new URLSearchParams(window.location.search);
-  const sessionId = params.get("session_id");
+  const email = params.get("email");
 
-  if(!sessionId){
+  if(!email){
     document.getElementById("status").innerText =
-      "❌ session manquante";
+      "❌ Email manquant après paiement";
     return;
   }
 
   try{
 
-    const res = await fetch(API + "/activate/" + sessionId);
+    const res = await fetch(API + "/activate?email=" + encodeURIComponent(email));
     const data = await res.json();
 
-    const cle = data.licence;
+    if(!data.licence){
+      throw new Error("Activation échouée");
+    }
 
-    if(!cle) throw new Error("activation échouée");
+    localStorage.setItem("user_email", email);
+    localStorage.setItem("licence_key", data.licence);
 
-    localStorage.setItem("licence_key", cle);
+    afficherCle(data.licence);
 
     document.getElementById("status").innerText =
-      "Licence activée ✔";
+      "Licence activée ✔ (VPIJLR 2026)";
 
-    afficherCle(cle);
+    // bouton accès SaaS
+    const accessBtn = document.getElementById("accessBtn");
+    accessBtn.style.display = "inline-block";
+
+    accessBtn.onclick = ()=>{
+      window.location.href = "https://ton-app.com";
+    };
 
   }catch(e){
 
     document.getElementById("status").innerText =
-      "❌ erreur";
+      "❌ " + e.message;
 
   }
+
 }
+
+/* ======================================================
+MODULE 07 — START
+====================================================== */
+
+window.onload = activer;
+
+</script>
+
+</body>
+</html>
