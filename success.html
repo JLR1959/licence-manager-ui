@@ -74,6 +74,25 @@ h1{
 .access-btn:hover{
   background:#16a34a;
 }
+
+.input-email{
+  margin-top:20px;
+  padding:10px;
+  width:260px;
+  border-radius:6px;
+  border:none;
+  outline:none;
+}
+
+.validate-btn{
+  margin-top:10px;
+  padding:10px 20px;
+  border:none;
+  border-radius:6px;
+  background:#2563eb;
+  color:white;
+  cursor:pointer;
+}
 </style>
 
 </head>
@@ -90,11 +109,23 @@ MODULE 02 — TITRE
 ====================================================== -->
 <h1>Paiement réussi ✅</h1>
 
-<p id="status">Activation en cours...</p>
+<p id="status">Activation de votre licence...</p>
 
 <!-- ======================================================
-MODULE 03 — LICENCE UI
+MODULE 03 — INPUT EMAIL (OBLIGATOIRE AVEC STRIPE LINK)
 ====================================================== -->
+
+<div id="emailZone">
+  <p>Entrez votre email utilisé pour le paiement :</p>
+  <input id="emailInput" class="input-email" type="email" placeholder="ex: client@email.com"/>
+  <br/>
+  <button class="validate-btn" onclick="validerEmail()">Valider</button>
+</div>
+
+<!-- ======================================================
+MODULE 04 — LICENCE UI
+====================================================== -->
+
 <div id="licenceBox" class="licence-box"></div>
 
 <button id="copyBtn" class="copy-btn" style="display:none;">
@@ -110,13 +141,13 @@ Accéder au logiciel
 <script>
 
 /* ======================================================
-MODULE 04 — CONFIG
+MODULE 05 — CONFIG
 ====================================================== */
 
 const API = "https://licence-server-jlr-0jex.onrender.com";
 
 /* ======================================================
-MODULE 05 — AFFICHAGE CLE
+MODULE 06 — AFFICHAGE CLE
 ====================================================== */
 
 function afficherCle(cle){
@@ -143,19 +174,12 @@ function afficherCle(cle){
 }
 
 /* ======================================================
-MODULE 06 — ACTIVATION
+MODULE 07 — ACTIVATION
 ====================================================== */
 
-async function activer(){
+async function activer(email){
 
-  const params = new URLSearchParams(window.location.search);
-  const email = params.get("email");
-
-  if(!email){
-    document.getElementById("status").innerText =
-      "❌ Email manquant après paiement";
-    return;
-  }
+  document.getElementById("status").innerText = "Activation en cours...";
 
   try{
 
@@ -174,7 +198,9 @@ async function activer(){
     document.getElementById("status").innerText =
       "Licence activée ✔ (VPIJLR 2026)";
 
-    // bouton accès SaaS
+    document.getElementById("emailZone").style.display = "none";
+
+    // bouton accès
     const accessBtn = document.getElementById("accessBtn");
     accessBtn.style.display = "inline-block";
 
@@ -188,14 +214,37 @@ async function activer(){
       "❌ " + e.message;
 
   }
-
 }
 
 /* ======================================================
-MODULE 07 — START
+MODULE 08 — VALIDATION EMAIL
 ====================================================== */
 
-window.onload = activer;
+function validerEmail(){
+
+  const email = document.getElementById("emailInput").value.trim();
+
+  if(!email || !email.includes("@")){
+    alert("Email invalide");
+    return;
+  }
+
+  activer(email);
+}
+
+/* ======================================================
+MODULE 09 — AUTO SI DÉJÀ SAUVEGARDÉ
+====================================================== */
+
+window.onload = () => {
+
+  const savedEmail = localStorage.getItem("user_email");
+
+  if(savedEmail){
+    activer(savedEmail);
+  }
+
+};
 
 </script>
 
