@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,191 +7,120 @@
 
 <style>
 body{
-  background:#0b1220;
+  background:#0b1a2a;
   color:white;
-  text-align:center;
-  padding-top:60px;
   font-family:Arial;
-}
-
-.logo{
-  width:140px;
-  border-radius:50%;
-  margin-bottom:20px;
+  text-align:center;
+  padding:50px;
 }
 
 h1{
-  color:#22c55e;
+  color:#00e676;
 }
 
-#status{
+.logo{
+  width:150px;
+  margin-bottom:20px;
+}
+
+.error{
+  color:#ff5252;
   margin-top:20px;
-  font-size:18px;
 }
 
-/* LICENCE */
-
-.licence-box{
-  margin-top:30px;
-  display:flex;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-.bloc{
-  background:#111827;
-  padding:12px 16px;
-  border-radius:8px;
-  font-weight:bold;
-  letter-spacing:2px;
-}
-
-.copy-btn{
+.key{
+  font-size:22px;
   margin-top:20px;
-  padding:10px 20px;
-  border:none;
-  border-radius:8px;
-  background:#2563eb;
-  color:white;
-  cursor:pointer;
-}
-
-.copy-btn:hover{
-  background:#1d4ed8;
+  color:#ffd740;
+  word-break:break-all;
 }
 </style>
 
 </head>
-
 <body>
-
-<!-- ======================================================
-MODULE 01 — LOGO
-====================================================== -->
 
 <img src="logo_jlr.png" class="logo">
 
-<!-- ======================================================
-MODULE 02 — TITRE
-====================================================== -->
-
 <h1>Paiement réussi ✅</h1>
 
-<p id="status">Activation licence...</p>
-
-<!-- ======================================================
-MODULE 03 — LICENCE UI
-====================================================== -->
-
-<div id="licenceBox" class="licence-box"></div>
-
-<button id="copyBtn" class="copy-btn" style="display:none;">
-Copier la clé
-</button>
+<div id="status">Chargement...</div>
+<div id="key" class="key"></div>
+<div id="error" class="error"></div>
 
 <script>
 
 /* ======================================================
-MODULE 04 — CONFIG
+CONFIG API
 ====================================================== */
 
 const API = "https://licence-server-jlr-0jex.onrender.com";
 
 /* ======================================================
-MODULE 05 — GET SESSION ID
+GET SESSION ID
 ====================================================== */
 
-function getSessionId(){
-  const params = new URLSearchParams(window.location.search);
-  return params.get("session_id");
-}
+const params = new URLSearchParams(window.location.search);
+const session_id = params.get("session_id");
+
+const statusDiv = document.getElementById("status");
+const keyDiv = document.getElementById("key");
+const errorDiv = document.getElementById("error");
 
 /* ======================================================
-MODULE 06 — AFFICHAGE CLE
+FLOW
 ====================================================== */
 
-function afficherCle(cle){
+async function init(){
 
-  const box = document.getElementById("licenceBox");
-  box.innerHTML = "";
-
-  const blocs = cle.split("-");
-
-  blocs.forEach(b=>{
-    const div = document.createElement("div");
-    div.className = "bloc";
-    div.innerText = b;
-    box.appendChild(div);
-  });
-
-  const btn = document.getElementById("copyBtn");
-  btn.style.display = "inline-block";
-
-  btn.onclick = ()=>{
-    navigator.clipboard.writeText(cle);
-    btn.innerText = "Copié ✔";
-  };
-}
-
-/* ======================================================
-MODULE 07 — ACTIVATION
-====================================================== */
-
-async function activer(){
-
-  const sessionId = getSessionId();
-
-  if(!sessionId){
-    document.getElementById("status").innerText =
-      "❌ Session Stripe manquante";
+  if(!session_id){
+    statusDiv.innerText = "";
+    errorDiv.innerText = "Session Stripe manquante";
     return;
   }
 
   try{
 
-    // 1. récupérer email depuis Stripe via serveur
-    const resSession = await fetch(API + "/session/" + sessionId);
-    const sessionData = await resSession.json();
+    /* STEP 1 — GET EMAIL FROM STRIPE */
 
-    const email = sessionData.email;
+    const res1 = await fetch(`${API}/session/${session_id}`);
 
-    if(!email){
+    if(!res1.ok){
+      throw new Error("Session invalide");
+    }
+
+    const data1 = await res1.json();
+
+    if(!data1.email){
       throw new Error("Email introuvable");
     }
 
-    // 2. récupérer licence
-    const res = await fetch(API + "/licence/" + email);
+    /* STEP 2 — GET LICENCE */
 
-    if(!res.ok){
+    const res2 = await fetch(`${API}/licence/${data1.email}`);
+
+    if(!res2.ok){
       throw new Error("Licence introuvable");
     }
 
-    const data = await res.json();
+    const data2 = await res2.json();
 
-    const cle = data.cle;
-
-    localStorage.setItem("licence_key", cle);
-
-    document.getElementById("status").innerText =
-      "Licence activée ✔";
-
-    afficherCle(cle);
+    statusDiv.innerText = "Licence activée ✅";
+    keyDiv.innerText = data2.cle;
 
   }catch(e){
 
-    document.getElementById("status").innerText =
-      "❌ " + e.message;
+    statusDiv.innerText = "";
+    errorDiv.innerText = "Erreur : " + e.message;
 
   }
 
 }
 
 /* ======================================================
-MODULE 08 — START
+START
 ====================================================== */
 
-window.onload = activer;
+init();
 
 </script>
 
