@@ -2,48 +2,67 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Activation VPIJLR</title>
-
-<style>
-body{
-  background:#0b1220;
-  color:white;
-  text-align:center;
-  padding-top:80px;
-  font-family:Arial;
-}
-
-.logo{
-  width:140px;
-  border-radius:50%;
-  margin-bottom:20px;
-}
-
-h1{
-  color:#22c55e;
-}
-
-#status{
-  margin-top:20px;
-  font-size:18px;
-}
-</style>
-
+<title>Activation licence</title>
 </head>
-
 <body>
 
-<!-- MODULE 01 -->
-<img src="logo_jlr.png" class="logo">
+<h1>Paiement confirmé</h1>
+<p id="status">Activation en cours...</p>
 
-<!-- MODULE 02 -->
-<h1>Activation en cours...</h1>
+<script>
+// ===============================
+// MODULE 01 - GET SESSION ID
+// ===============================
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get("session_id");
 
-<!-- MODULE 03 -->
-<p id="status">Connexion au serveur...</p>
+// ===============================
+// MODULE 02 - ACTIVATE
+// ===============================
+async function activate() {
 
-<!-- MODULE 04 -->
-<script src="success.js"></script>
+    if (!sessionId) {
+        document.getElementById("status").innerText = "Erreur : session_id manquant";
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "https://TON-SERVER.onrender.com/activate-session",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.licence) {
+            document.getElementById("status").innerHTML =
+                "Licence activée : <b>" + data.licence + "</b><br><br>" +
+                "Type : " + data.type + "<br>" +
+                "Machines : " + data.maxMachines + "<br>" +
+                "Expiration : " + (data.expiresAt || "illimité");
+        } else {
+            document.getElementById("status").innerText =
+                "Erreur : " + (data.error || "inconnue");
+        }
+
+    } catch (err) {
+        document.getElementById("status").innerText = "Erreur serveur";
+    }
+}
+
+// ===============================
+// MODULE 03 - EXECUTE
+// ===============================
+activate();
+</script>
 
 </body>
 </html>
