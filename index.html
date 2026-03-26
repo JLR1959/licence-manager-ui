@@ -1,5 +1,5 @@
 <!-- ===============================
-MODULE 05 - LICENCE PREMIUM UI
+MODULE 05 - LICENCE ELITE UI
 =============================== -->
 <div id="licence-card" style="
   margin:50px auto;
@@ -12,19 +12,27 @@ MODULE 05 - LICENCE PREMIUM UI
   text-align:center;
   font-family:monospace;
   position:relative;
+  overflow:hidden;
 ">
 
-  <!-- TITRE -->
-  <div style="
-    color:#94a3b8;
-    font-size:13px;
-    margin-bottom:20px;
-    letter-spacing:2px;
-  ">
+  <!-- SCAN EFFECT -->
+  <div id="scan-line" style="
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:2px;
+    background:#22c55e;
+    box-shadow:0 0 10px #22c55e;
+    animation:scan 2s linear infinite;
+  "></div>
+
+  <!-- TITLE -->
+  <div style="color:#94a3b8;font-size:13px;margin-bottom:20px;letter-spacing:2px;">
     LICENCE OFFICIELLE VPIJLR 2026
   </div>
 
-  <!-- BLOCS -->
+  <!-- KEY -->
   <div id="licence-key" style="
     display:flex;
     gap:12px;
@@ -34,64 +42,73 @@ MODULE 05 - LICENCE PREMIUM UI
   "></div>
 
   <!-- ACTIONS -->
-  <div style="display:flex;gap:10px;justify-content:center;">
-
-    <button id="copy-btn" style="
-      background:#1e40af;
-      border:none;
-      padding:10px 16px;
-      border-radius:6px;
-      color:white;
-      cursor:pointer;
-      font-weight:bold;
-    ">
-      Copier
-    </button>
-
-    <button id="toggle-btn" style="
-      background:#334155;
-      border:none;
-      padding:10px 16px;
-      border-radius:6px;
-      color:white;
-      cursor:pointer;
-      font-weight:bold;
-    ">
-      Masquer
-    </button>
-
+  <div style="display:flex;gap:10px;justify-content:center;margin-bottom:15px;">
+    <button id="copy-btn">Copier</button>
+    <button id="toggle-btn">Masquer</button>
   </div>
+
+  <!-- STATUS -->
+  <div id="licence-status" style="font-size:13px;"></div>
+
+  <!-- QR -->
+  <canvas id="qr" style="margin-top:15px;"></canvas>
 
 </div>
 
+<style>
+@keyframes scan{
+  0%{ top:0 }
+  100%{ top:100% }
+}
+button{
+  background:#1e40af;
+  border:none;
+  padding:10px 16px;
+  border-radius:6px;
+  color:white;
+  cursor:pointer;
+  font-weight:bold;
+}
+</style>
+
 <!-- ===============================
-MODULE 06 - SCRIPT PREMIUM
+MODULE 06 - SCRIPT ELITE
 =============================== -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
 <script>
-(function(){
+(async function(){
+
+  const API = "https://licence-server-jlr-0jex.onrender.com";
 
   const licence = localStorage.getItem("licence_key");
-  const container = document.getElementById("licence-key");
+  let machine_id = localStorage.getItem("machine_id");
+
+  const keyContainer = document.getElementById("licence-key");
+  const statusEl = document.getElementById("licence-status");
   const copyBtn = document.getElementById("copy-btn");
   const toggleBtn = document.getElementById("toggle-btn");
 
   if(!licence){
-    container.innerHTML = "<span style='color:#ef4444'>Aucune licence</span>";
+    statusEl.innerText = "❌ Aucune licence";
+    statusEl.style.color = "#ef4444";
     return;
+  }
+
+  // ===============================
+  // MODULE 07 - MACHINE ID
+  // ===============================
+  if(!machine_id){
+    machine_id = crypto.randomUUID();
+    localStorage.setItem("machine_id", machine_id);
   }
 
   let visible = true;
 
   function render(){
-
-    container.innerHTML = "";
-
-    const parts = licence.split("-");
-
-    parts.forEach(part => {
-
+    keyContainer.innerHTML = "";
+    licence.split("-").forEach(part=>{
       const block = document.createElement("div");
-
       block.style = `
         background:#020617;
         padding:12px 16px;
@@ -102,37 +119,67 @@ MODULE 06 - SCRIPT PREMIUM
         letter-spacing:2px;
         font-weight:bold;
         min-width:85px;
-        box-shadow:0 0 10px rgba(34,197,94,0.2);
-        transition:all 0.2s;
+        box-shadow:0 0 10px rgba(34,197,94,0.3);
       `;
-
       block.innerText = visible ? part : "••••••";
-
-      container.appendChild(block);
-
+      keyContainer.appendChild(block);
     });
-
   }
 
   // ===============================
-  // COPY
+  // MODULE 08 - COPY
   // ===============================
-  copyBtn.onclick = () => {
+  copyBtn.onclick = ()=>{
     navigator.clipboard.writeText(licence);
     copyBtn.innerText = "✔ Copié";
-    setTimeout(()=> copyBtn.innerText = "Copier", 1500);
+    setTimeout(()=>copyBtn.innerText="Copier",1500);
   };
 
   // ===============================
-  // TOGGLE VISIBILITY
+  // MODULE 09 - TOGGLE
   // ===============================
-  toggleBtn.onclick = () => {
+  toggleBtn.onclick = ()=>{
     visible = !visible;
     toggleBtn.innerText = visible ? "Masquer" : "Afficher";
     render();
   };
 
   render();
+
+  // ===============================
+  // MODULE 10 - SERVER CHECK
+  // ===============================
+  try{
+    const res = await fetch(API + "/check-access", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        email: localStorage.getItem("user_email"),
+        machineId: machine_id
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+      statusEl.innerText = "✔ Licence valide";
+      statusEl.style.color = "#22c55e";
+    }else{
+      throw new Error(data.error);
+    }
+
+  }catch(e){
+    statusEl.innerText = "⚠ Mode hors ligne";
+    statusEl.style.color = "#f59e0b";
+  }
+
+  // ===============================
+  // MODULE 11 - QR CODE
+  // ===============================
+  QRCode.toCanvas(document.getElementById("qr"), licence, {
+    width:120,
+    color:{ dark:"#22c55e", light:"#0000" }
+  });
 
 })();
 </script>
