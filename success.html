@@ -1,68 +1,64 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Activation licence</title>
-</head>
-<body>
+<!-- ===============================
+MODULE 01 - HEADER VPIJLR 2026
+=============================== -->
+<header style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:linear-gradient(135deg,#0b1220,#1e293b);
+  padding:15px 30px;
+  border-bottom:2px solid #1e40af;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+">
 
-<h1>Paiement confirmé</h1>
-<p id="status">Activation en cours...</p>
+  <!-- ===============================
+  MODULE 02 - LOGO + NOM
+  =============================== -->
+  <div style="display:flex;align-items:center;gap:15px;">
+    
+    <img src="logo_jlr.png" alt="logo" style="width:60px;height:60px;">
+    
+    <div>
+      <div style="font-size:22px;font-weight:bold;color:white;">
+        VPIJLR
+      </div>
+      <div style="font-size:12px;color:#94a3b8;">
+        Logiciel professionnel • 2026
+      </div>
+    </div>
 
+  </div>
+
+  <!-- ===============================
+  MODULE 03 - STATUT LICENCE
+  =============================== -->
+  <div id="licence-info" style="
+    color:#22c55e;
+    font-size:14px;
+    font-weight:bold;
+  ">
+    Licence : vérification...
+  </div>
+
+</header>
+
+<!-- ===============================
+MODULE 04 - SCRIPT LICENCE
+=============================== -->
 <script>
-// ===============================
-// MODULE 01 - GET SESSION ID
-// ===============================
-const params = new URLSearchParams(window.location.search);
-const sessionId = params.get("session_id");
+(function(){
 
-// ===============================
-// MODULE 02 - ACTIVATE
-// ===============================
-async function activate() {
+  const licence = localStorage.getItem("licence_key");
+  const email = localStorage.getItem("user_email");
 
-    if (!sessionId) {
-        document.getElementById("status").innerText = "Erreur : session_id manquant";
-        return;
-    }
+  const el = document.getElementById("licence-info");
 
-    try {
-        const response = await fetch(
-            "https://TON-SERVER.onrender.com/activate-session",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    session_id: sessionId
-                })
-            }
-        );
+  if(licence){
+    el.innerText = "✔ Licence active";
+  }else{
+    el.style.color = "#ef4444";
+    el.innerText = "❌ Aucune licence";
+  }
 
-        const data = await response.json();
-
-        if (data.licence) {
-            document.getElementById("status").innerHTML =
-                "Licence activée : <b>" + data.licence + "</b><br><br>" +
-                "Type : " + data.type + "<br>" +
-                "Machines : " + data.maxMachines + "<br>" +
-                "Expiration : " + (data.expiresAt || "illimité");
-        } else {
-            document.getElementById("status").innerText =
-                "Erreur : " + (data.error || "inconnue");
-        }
-
-    } catch (err) {
-        document.getElementById("status").innerText = "Erreur serveur";
-    }
-}
-
-// ===============================
-// MODULE 03 - EXECUTE
-// ===============================
-activate();
+})();
 </script>
-
-</body>
-</html>
