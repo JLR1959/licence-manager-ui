@@ -2,93 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Paiement réussi</title>
-
-<style>
-body{
-  background:#0b1220;
-  color:white;
-  text-align:center;
-  padding-top:60px;
-  font-family:Arial;
-}
-
-.logo{
-  width:140px;
-  border-radius:50%;
-  margin-bottom:20px;
-}
-
-h1{color:#22c55e;}
-
-#status{
-  margin-top:20px;
-  font-size:18px;
-}
-
-.licence-box{
-  margin-top:30px;
-  display:flex;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-.bloc{
-  background:#111827;
-  padding:12px 16px;
-  border-radius:8px;
-  font-weight:bold;
-  letter-spacing:2px;
-}
-
-.copy-btn, .access-btn, .validate-btn{
-  margin-top:20px;
-  padding:10px 20px;
-  border:none;
-  border-radius:8px;
-  background:#2563eb;
-  color:white;
-  cursor:pointer;
-}
-
-.access-btn{background:#22c55e;}
-
-.input-email{
-  margin-top:20px;
-  padding:10px;
-  width:260px;
-  border-radius:6px;
-  border:none;
-}
-</style>
+<title>Activation</title>
 </head>
 
-<body>
+<body style="background:#0b1220;color:white;text-align:center;padding-top:80px;font-family:Arial;">
 
-<img src="logo_jlr.png" class="logo">
-
-<h1>Paiement réussi ✅</h1>
-<p id="status">Activation de votre licence...</p>
-
-<div id="emailZone">
-  <p>Entrez votre email utilisé pour le paiement :</p>
-  <input id="emailInput" class="input-email" type="email"/>
-  <br/>
-  <button class="validate-btn" onclick="validerEmail()">Valider</button>
-</div>
-
-<div id="licenceBox" class="licence-box"></div>
-
-<button id="copyBtn" class="copy-btn" style="display:none;">
-Copier la clé
-</button>
-
-<br/>
-
-<button id="accessBtn" class="access-btn" style="display:none;">
-Accéder au logiciel
-</button>
+<h1>Activation en cours...</h1>
+<p id="status">Connexion au serveur...</p>
 
 <script>
 
@@ -96,114 +16,60 @@ Accéder au logiciel
 // MODULE 01 - CONFIG
 // ==============================
 const API = "https://licence-server-jlr-0jex.onrender.com";
-const SAAS_URL = "https://jlr1959.github.io/VPIJLR-logiciel-client/";
+const APP = "https://jlr1959.github.io/licence-manager-ui/";
 
 // ==============================
-// MODULE 02 - DEBUG
+// MODULE 02 - GET SESSION ID
 // ==============================
-function log(msg){
-  console.log("[DEBUG]", msg);
+function getSessionId(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get("session_id");
 }
 
 // ==============================
-// MODULE 03 - AFFICHAGE CLE
+// MODULE 03 - ACTIVATE SESSION
 // ==============================
-function afficherCle(cle){
-  const box = document.getElementById("licenceBox");
-  box.innerHTML = "";
+async function activate(){
 
-  cle.split("-").forEach(b=>{
-    const div = document.createElement("div");
-    div.className = "bloc";
-    div.innerText = b;
-    box.appendChild(div);
-  });
+  const session_id = getSessionId();
 
-  const btn = document.getElementById("copyBtn");
-  btn.style.display = "inline-block";
-
-  btn.onclick = ()=>{
-    navigator.clipboard.writeText(cle);
-    btn.innerText = "Copié ✔";
-  };
-}
-
-// ==============================
-// MODULE 04 - ACTIVER (FIX)
-// ==============================
-async function activer(email){
-
-  document.getElementById("status").innerText = "Activation...";
-  log("Email: " + email);
-
-  try{
-
-    const res = await fetch(API + "/activate?email=" + encodeURIComponent(email));
-
-    if(!res.ok){
-      throw new Error("HTTP " + res.status);
-    }
-
-    const data = await res.json();
-
-    log(data);
-
-    if(!data.licence){
-      throw new Error("Licence absente");
-    }
-
-    localStorage.setItem("user_email", email);
-    localStorage.setItem("licence_key", data.licence);
-
-    afficherCle(data.licence);
-
-    document.getElementById("status").innerText =
-      "Licence activée ✔";
-
-    document.getElementById("emailZone").style.display = "none";
-
-    const accessBtn = document.getElementById("accessBtn");
-    accessBtn.style.display = "inline-block";
-
-    accessBtn.onclick = ()=>{
-      window.location.href = SAAS_URL;
-    };
-
-  }catch(err){
-    console.error(err);
-    document.getElementById("status").innerText =
-      "❌ Erreur activation (voir console)";
-  }
-}
-
-// ==============================
-// MODULE 05 - VALIDATION
-// ==============================
-function validerEmail(){
-
-  const email = document.getElementById("emailInput").value.trim();
-
-  if(!email || !email.includes("@")){
-    alert("Email invalide");
+  if(!session_id){
+    document.getElementById("status").innerText = "❌ session introuvable";
     return;
   }
 
-  activer(email);
+  try{
+
+    const res = await fetch(API + "/activate-session", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ session_id })
+    });
+
+    const data = await res.json();
+
+    if(!data.licence){
+      throw new Error("activation failed");
+    }
+
+    // stockage
+    localStorage.setItem("user_email", data.email);
+    localStorage.setItem("licence_key", data.licence);
+
+    document.getElementById("status").innerText = "Licence activée ✔";
+
+    setTimeout(()=>{
+      window.location.href = APP;
+    },1500);
+
+  }catch(e){
+    console.error(e);
+    document.getElementById("status").innerText = "❌ erreur activation";
+  }
 }
 
 // ==============================
-// MODULE 06 - AUTO LOGIN
-// ==============================
-window.onload = () => {
-
-  const saved = localStorage.getItem("user_email");
-
-  if(saved){
-    activer(saved);
-  }else{
-    document.getElementById("status").innerText = "Entrez votre email";
-  }
-};
+activate();
 
 </script>
 
